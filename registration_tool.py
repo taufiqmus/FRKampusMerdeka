@@ -40,7 +40,7 @@ class App:
         
         self.num = 0
 
-        self.L2 = tkinter.Label(window, text="label:")
+        self.L2 = tkinter.Label(window, text="NIM:")
         self.L2.pack(anchor=tkinter.CENTER, expand=True,side=tkinter.LEFT)
         self.input = tkinter.Entry(window)
  
