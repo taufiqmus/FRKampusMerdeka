@@ -11,3 +11,11 @@ instalasi:
 3. untuk registrasi: python registration_tool.py
 
 4. untuk recognition: python main.py
+
+
+Website:
+
+streamlit run web.py
+
+gunakan ngrok untuk publish web (free)
+ikuti instruksinya di https://ngrok.com/
