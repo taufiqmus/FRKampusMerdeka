@@ -19,3 +19,7 @@ streamlit run web.py
 
 gunakan ngrok untuk publish web (free)
 ikuti instruksinya di https://ngrok.com/
+
+
+
+note: buat sebuah folder 'folder_wajah' didalam project
