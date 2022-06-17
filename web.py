@@ -27,12 +27,14 @@ path_json = "data_wajah.json"
 def extract_embedding(img):
     embedding = None
     cropped_face_img = None
+    final_box = None
     if img is not None:
         img_ori = img.copy()
-        img, bboxs = detector.findFaces(img)
+        img_vis, bboxs = detector.findFaces(img)
         if bboxs:
             x, y, w, h = bboxs[0]["bbox"]
             x1, y1, x2, y2 = max(0, x), max(0, y), min(x+w, img_ori.shape[1]), min(y+h, img_ori.shape[0])
+            final_box = (x1, y1, x2, y2) 
             if x > 0 and y > 0:
                 cropped_face_img = img_ori[y1:y2, x1:x2]
                 cropped_face_img = cv2.resize(cropped_face_img, (112,112))
@@ -43,7 +45,7 @@ def extract_embedding(img):
         else:
             pass
 
-    return embedding, crop_vis   
+    return embedding, crop_vis, final_box 
 
 def pengenalan(emb):
     file = open(path_json)
@@ -93,7 +95,7 @@ def store_data_to_csv(nama, nim):
     df.to_csv (r'data_presensi.csv', header=True)
     st.write(f"Anda telah melakukan presensi pada {tanggal} pukul {waktu}")
 
-def save_crop_wajah(crop, nim):
+def save_wajah(img, crop, nim):
     path_snapshot = os.path.join("folder_wajah", nim)
     try:
         os.mkdir(path_snapshot)
@@ -101,41 +103,48 @@ def save_crop_wajah(crop, nim):
         f = os.listdir(path_snapshot)
     else:
         print ("Successfully created the directory %s " % path_snapshot)
-    cv2.imwrite(path_snapshot+"/"+nim + ".jpg", crop)
+    cv2.imwrite(path_snapshot+"/"+nim + "_face.jpg", crop)
+    cv2.imwrite(path_snapshot+"/"+nim + "_full.jpg", img)
 
 def presensi(img):
-    embedding, crop_wajah = extract_embedding(img)
+    img_ori = img.copy()
+    embedding, crop_wajah, bbox = extract_embedding(img)
     if embedding is not None:
         angle, nim = pengenalan(embedding)
         nama = get_name(nim)
 
         if angle <= ANGLE_THRES:
-            colT1,colT2 = st.columns([1,3])
+            colT1,colT2 = st.columns([3,3])
             with colT1:
+                img_ori = cv2.rectangle(img_ori, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (200,170,0), 2)
                 crop = st.image([])
-                crop.image(cv2.cvtColor(crop_wajah, cv2.COLOR_BGR2RGB))
+                crop.image(cv2.cvtColor(img_ori, cv2.COLOR_BGR2RGB))
             with colT2:
                 st.write(f"apakah anda {nama} dengan NIM {nim} ?")
-                global submit_button 
-                submit_button = st.button("submit")
+
+                placeholder = st.empty()
+                submit_button = placeholder.button('submit')
+                    
                 if submit_button:
                     store_data_to_csv(nama, nim)
+                    placeholder.empty()
         else:
             st.write("ulangi proses, wajah tidak dikenali")
     else:
         st.write("tidak ada wajah yang terdeteksi")
 
 def registrasi(img, nama, nim):
+    img_ori = img.copy()
     nama = nama.upper()
     nim = nim.upper()
-    embedding, crop_wajah = extract_embedding(img)
+    embedding, crop_wajah, bbox = extract_embedding(img)
     if embedding is not None:
         if nama=="" or nim=="":
             st.write("isi nama dana NIM terlebih dahulu!")
         else:
             regist(nim, embedding.tolist(), path_json)
             save_name(nim, nama)
-            save_crop_wajah(crop_wajah, nim)
+            save_wajah(img_ori, crop_wajah, nim)
             st.write(f"{nama} dengan NIM {nim} telah terdaftar.")
     else:
         st.write("ulangi registrasi, tidak ada wajah yang terdeteksi")
@@ -144,7 +153,7 @@ st.set_page_config(page_title='Face Recognition')
 
 st.markdown("<h1 style='text-align: center; color: white;'>Smart Presensi</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: white;'>Selamat datang di sistem presensi Face Recognition Kampus Merdeka!</h3>", unsafe_allow_html=True)
-st.markdown("<h4 style='text-align: center; color: white;'><------ pilih menu registrasi atau presensi</h4>", unsafe_allow_html=True)
+#st.markdown("<h4 style='text-align: center; color: white;'><------ pilih menu registrasi atau presensi</h4>", unsafe_allow_html=True)
 
 st.sidebar.title("Face Recognition")
 
