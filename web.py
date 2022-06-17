@@ -42,7 +42,7 @@ def extract_embedding(img):
                 embedding = session.run([output_name], {input_name: cropped_face_img})[0]
         else:
             pass
-        
+
     return embedding, crop_vis   
 
 def pengenalan(emb):
@@ -89,20 +89,28 @@ def store_data_to_csv(nama, nim):
     else:
         new_df = pd.DataFrame(data)
         df = df.append(new_df, ignore_index=True)
-    print(df)
     
     df.to_csv (r'data_presensi.csv', header=True)
     st.write(f"Anda telah melakukan presensi pada {tanggal} pukul {waktu}")
-    
-def absensi(img):
+
+def save_crop_wajah(crop, nim):
+    path_snapshot = os.path.join("folder_wajah", nim)
+    try:
+        os.mkdir(path_snapshot)
+    except OSError:
+        f = os.listdir(path_snapshot)
+    else:
+        print ("Successfully created the directory %s " % path_snapshot)
+    cv2.imwrite(path_snapshot+"/"+nim + ".jpg", crop)
+
+def presensi(img):
     embedding, crop_wajah = extract_embedding(img)
     if embedding is not None:
         angle, nim = pengenalan(embedding)
         nama = get_name(nim)
-        
-        print(angle)
+
         if angle <= ANGLE_THRES:
-            colT1,colT2,colT3 = st.columns([3,3,3])
+            colT1,colT2 = st.columns([1,3])
             with colT1:
                 crop = st.image([])
                 crop.image(cv2.cvtColor(crop_wajah, cv2.COLOR_BGR2RGB))
@@ -120,13 +128,14 @@ def absensi(img):
 def registrasi(img, nama, nim):
     nama = nama.upper()
     nim = nim.upper()
-    embedding = extract_embedding(img)
+    embedding, crop_wajah = extract_embedding(img)
     if embedding is not None:
         if nama=="" or nim=="":
             st.write("isi nama dana NIM terlebih dahulu!")
         else:
             regist(nim, embedding.tolist(), path_json)
             save_name(nim, nama)
+            save_crop_wajah(crop_wajah, nim)
             st.write(f"{nama} dengan NIM {nim} telah terdaftar.")
     else:
         st.write("ulangi registrasi, tidak ada wajah yang terdeteksi")
@@ -148,7 +157,7 @@ if video_source in ["Presensi"]:
         # To read image file buffer with OpenCV:
         bytes_data = img_file_buffer.getvalue()
         img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-        absensi(img)
+        presensi(img)
 
 
 elif video_source in ["Registrasi"]:
